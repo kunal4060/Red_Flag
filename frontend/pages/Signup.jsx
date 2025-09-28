@@ -6,29 +6,42 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
       email:"",
-      fullName:"",
+      firstName:"",
+      lastName:"",
       password: ""
   });
 
   const {authUser, signup, isSigningUp, emailAlreadyExists} = useAuthStore();
 
   const [emailRequiredError, setEmailRequiredError] = useState(false);
-  const [nameRequiredError, setNameRequiredError] = useState(false);
+  const [firstNameRequiredError, setFirstNameRequiredError] = useState(false);
+  const [lastNameRequiredError, setLastNameRequiredError] = useState(false);
   const [passwordRequiredError, setPasswordRequiredError] = useState(false);
   const [emailAlreadyTaken, setEmailAlreadyTaken] = useState(false);
     
   const validateForm = () => {
     if (!formData.email.trim()) {
         setEmailRequiredError(true);
-        setNameRequiredError(false);
+        setFirstNameRequiredError(false);
+        setLastNameRequiredError(false);
         setPasswordRequiredError(false);
         setEmailAlreadyTaken(false);
         return false
     };
 
-    if (!formData.fullName.trim()) {
-        setNameRequiredError(true);
+    if (!formData.firstName.trim()) {
+        setFirstNameRequiredError(true);
         setEmailRequiredError(false);
+        setLastNameRequiredError(false);
+        setPasswordRequiredError(false);
+        setEmailAlreadyTaken(false);
+        return false
+    };
+
+    if (!formData.lastName.trim()) {
+        setFirstNameRequiredError(false);
+        setEmailRequiredError(false);
+        setLastNameRequiredError(true);
         setPasswordRequiredError(false);
         setEmailAlreadyTaken(false);
         return false
@@ -37,7 +50,8 @@ const Signup = () => {
     if (!formData.password.trim()) {
         setPasswordRequiredError(true); 
         setEmailRequiredError(false);
-        setNameRequiredError(false);
+        setFirstNameRequiredError(false);
+        setLastNameRequiredError(false);
         setEmailAlreadyTaken(false);
         return false
     };
@@ -60,38 +74,80 @@ const Signup = () => {
       }
   }
   return (
-    <div className='p-8 h-screen w-screen flex flex-col justify-between'>
-        {/* Header */}
+    <div className='flex flex-row h-screen w-full bg-black text-white'>
+        {/* Left half Filler */}
+        <div className='rounded-4xl bg-neutral-900 w-[60%] m-4 flex flex-col justify-end items-center text-center'>
+            <svg
+                className=" top-0 left-1/2 rounded-4xl"
+                width="100%"
+                height="100%"
+                viewBox="0 0 500 700"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ zIndex: 0 }}
+                preserveAspectRatio="none"
+            >
+                <defs>
+                    <radialGradient id="circleGradient" cx="50%" cy="0%" r="80%">
+                        <stop offset="0%" stopColor="#ff3c6e" stopOpacity="0.7" />
+                        <stop offset="70%" stopColor="#ffb86c" stopOpacity="0.1" />
+                        <stop offset="100%" stopColor="#000" stopOpacity="0" />
+                    </radialGradient>
 
-        {/* Body */}
-        <div>
-        <div className="font-mono text-6xl font-bold flex flex-col lg:w-1/4">
-          <TypingText text="Signup" startDelay={0}/>
-        </div>
-        <div className="font-mono text-xl mt-4 w-full lg:w-1/5 flex flex-col">
-          {emailRequiredError && (<div className='font-mono text-xl text-red-400'><TypingText text='E-mail is required' /></div>)}
-          <TypingText text=">Email" startDelay={500}/>
-          <input onChange={(e) => setFormData({...formData, email:e.target.value})} className='mb-4' placeholder='-Enter your Email' />
+                </defs>
+                <circle z-index="10" cx="250" cy="350" r="550" fill="url(#circleGradient)" />
+                {/* <circle cx="250" cy="600" r="400" fill="url(#circleGradient2)" /> */}
 
-          {nameRequiredError && (<div className='font-mono text-xl text-red-400'><TypingText text='Name is required' /></div>)}
-          <TypingText text=">Name" startDelay={500}/>
-          <input onChange={(e) => setFormData({...formData, fullName:e.target.value})} className='mb-4' placeholder='-Enter your Name' />
 
-          {passwordRequiredError && (<div className='font-mono text-xl text-red-400'><TypingText text='Password is required' /></div>)}
-          <TypingText text=">Password" startDelay={1000}/>
-          <input onChange={(e) => setFormData({...formData, password:e.target.value})} type={showPassword ? 'text' : 'password'} placeholder='-Enter your Password' />
-        </div>
-
-        <div className="font-mono text-xl mt-4 w-full lg:w-1/5 flex flex-col gap-4">
-            {emailAlreadyTaken && (<div className='font-mono text-xl text-red-400'><TypingText text='Email already exists' /></div>)}
-            <div aria-disabled={isSigningUp} onClick={(e) => handleSumbit(e)}>
-                {isSigningUp ? (<h1>SigningUP...</h1>) : (<TypingText text=">Signup" startDelay={1500}/>)}
+            </svg>
+            <div>
+                <div className='text-xl my-4'>RedFlag</div>
+                <div className='text-4xl mb-2'>Get Started with Us</div>
+                <div className='w-74 tracking-wider text-neutral-400'>Complete these easy steps to register your account.</div>
             </div>
-            <div className='mt-4'><TypingText text="Already secured your Soul? Sync now!" startDelay={2000}/></div>
-        </div>
+
+            <div className='text-black m-8 gap-4 flex flex-col'>
+                <div className='bg-white rounded-xl px-20 py-2'>Sign Up your account</div>
+                <div className='bg-neutral-800 text-neutral-400 rounded-xl px-20 py-2'>Choose your plan</div>
+                <div className='bg-neutral-800 text-neutral-400 rounded-xl px-20 py-2'>Finalize</div>
+            </div>
         </div>
 
-        {/* Footer */}
+        {/* Form on right */}
+        <div className='my-4 flex flex-col items-center justify-center w-[40%] mx-20'>
+            <div className='text-3xl font-semibold my-4'>Sign Up Account</div>
+            <div className='text-neutral-400'>Enter your personal data to create your account.</div>
+
+            <div className='w-full flex flex-row gap-4 mt-8 justify-center'>
+                <div className='w-full flex flex-col gap-2'>
+                    <div>First Name</div>
+                    <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. John' />
+                </div>
+
+                <div className='w-full flex flex-col gap-2'>
+                    <div>Last Name</div>
+                    <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. Doe' />
+                </div>
+            </div>
+
+            <div className='flex flex-col gap-2 mt-4 w-full'>
+                <div className=''>Email</div>
+                <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. john.doe@example.com' />
+            </div>
+            
+            <div className='flex flex-col gap-2 mt-4 w-full'>
+                <div className=''>Password</div>
+                <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='Enter your password' />
+                <div className='text-sm text-neutral-400'>Must be atleast 6 characters long</div>
+            </div>
+
+            <button className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black'>Sign Up</button>
+
+            <div className='flex flex-row gap-1 mt-8'>
+                <div className='text-neutral-400'>Already have an account?</div>
+                <div className='text-white'>Log In</div>
+            </div>
+        </div>
     </div>
   )
 }

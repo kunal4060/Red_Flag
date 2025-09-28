@@ -14,11 +14,16 @@ const userSchema = new mongoose.Schema(
             minLength: 6,
         },
 
-        fullName: {
+        firstName: {
             type: String,
             required: true,
         },
-        
+
+        lastName: {
+            type: String,
+            required: true,
+        },
+
         profilePic: {
             type: String,
             default: "",
