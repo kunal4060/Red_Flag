@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore';
 import TypingText from '../components/TypingText';
+import { useNavigate } from 'react-router-dom';
 const Signup = () => {
 
   const [showPassword, setShowPassword] = useState(false);
@@ -20,14 +21,6 @@ const Signup = () => {
   const [emailAlreadyTaken, setEmailAlreadyTaken] = useState(false);
     
   const validateForm = () => {
-    if (!formData.email.trim()) {
-        setEmailRequiredError(true);
-        setFirstNameRequiredError(false);
-        setLastNameRequiredError(false);
-        setPasswordRequiredError(false);
-        setEmailAlreadyTaken(false);
-        return false
-    };
 
     if (!formData.firstName.trim()) {
         setFirstNameRequiredError(true);
@@ -47,6 +40,15 @@ const Signup = () => {
         return false
     };
 
+    if (!formData.email.trim()) {
+        setEmailRequiredError(true);
+        setFirstNameRequiredError(false);
+        setLastNameRequiredError(false);
+        setPasswordRequiredError(false);
+        setEmailAlreadyTaken(false);
+        return false
+    };
+
     if (!formData.password.trim()) {
         setPasswordRequiredError(true); 
         setEmailRequiredError(false);
@@ -58,21 +60,25 @@ const Signup = () => {
     
     return true
   }
-  const handleSumbit = (e) => {
+  const handleSubmit = (e) => {
       e.preventDefault()
 
       const success = validateForm();
 
       if (success===true) {
-          setEmailRequiredError(false)
-          setPasswordRequiredError(false)
-          signup(formData)
+        setFirstNameRequiredError(false)
+        setLastNameRequiredError(false)
+        setEmailRequiredError(false)
+        setPasswordRequiredError(false)
+        signup(formData)
       }
 
       if (success===true && emailAlreadyExists) {
           setEmailAlreadyTaken(true)
       }
   }
+
+  const navigate = useNavigate()
   return (
     <div className='flex flex-row h-screen w-full bg-black text-white'>
         {/* Left half Filler */}
@@ -101,7 +107,10 @@ const Signup = () => {
 
             </svg>
             <div>
-                <div className='text-xl my-4'>RedFlag</div>
+                <div className='flex flex-row justify-center items-center gap-2 mb-4'>
+                    <div className='text-4xl my-4 font-[gagalin]'>Red</div>
+                    <div className='text-4xl my-4 font-[aloja]'>Flag</div>
+                </div>
                 <div className='text-4xl mb-2'>Get Started with Us</div>
                 <div className='w-74 tracking-wider text-neutral-400'>Complete these easy steps to register your account.</div>
             </div>
@@ -121,31 +130,35 @@ const Signup = () => {
             <div className='w-full flex flex-row gap-4 mt-8 justify-center'>
                 <div className='w-full flex flex-col gap-2'>
                     <div>First Name</div>
-                    <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. John' />
+                    <input onChange={(e) => setFormData({...formData, firstName:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. John' />
                 </div>
 
                 <div className='w-full flex flex-col gap-2'>
                     <div>Last Name</div>
-                    <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. Doe' />
+                    <input onChange={(e) => setFormData({...formData, lastName:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. Doe' />
                 </div>
             </div>
+            {firstNameRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>First Name is required</div>}
+            {lastNameRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>Last Name is required</div>}
 
             <div className='flex flex-col gap-2 mt-4 w-full'>
                 <div className=''>Email</div>
-                <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. john.doe@example.com' />
+                <input onChange={(e) => setFormData({...formData, email:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. john.doe@example.com' />
+                {emailRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>Email is required</div>}
             </div>
             
             <div className='flex flex-col gap-2 mt-4 w-full'>
                 <div className=''>Password</div>
-                <input className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='Enter your password' />
+                <input onChange={(e) => setFormData({...formData, password:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='Enter your password' />
+                {passwordRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>Password is required</div>}
                 <div className='text-sm text-neutral-400'>Must be atleast 6 characters long</div>
             </div>
 
-            <button className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black'>Sign Up</button>
+            <button onClick={(e) => handleSubmit(e)} className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black'>Sign Up</button>
 
             <div className='flex flex-row gap-1 mt-8'>
                 <div className='text-neutral-400'>Already have an account?</div>
-                <div className='text-white'>Log In</div>
+                <div onClick={() => navigate('/login')} className='text-white'>Log In</div>
             </div>
         </div>
     </div>
