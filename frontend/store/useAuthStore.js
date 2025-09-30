@@ -81,4 +81,15 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  updatePlan: async (plan) => {
+    try {
+      const res = await axiosInstance.put("/auth/update-plan", { plan });
+      set((state) => ({
+        authUser: { ...state.authUser, plan: res.data.plan }
+      }));
+    } catch (error) {
+      console.log("Error updating plan:", error.response?.data?.message);
+    }
+  },
+
 }));

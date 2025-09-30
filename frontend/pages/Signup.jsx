@@ -2,6 +2,9 @@ import React, { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore';
 import TypingText from '../components/TypingText';
 import { useNavigate } from 'react-router-dom';
+import { useSpring, animated } from '@react-spring/web';
+import Plans from './Plans';
+import Finalize from './Finalize';
 const Signup = () => {
 
   const [showPassword, setShowPassword] = useState(false);
@@ -19,6 +22,17 @@ const Signup = () => {
   const [lastNameRequiredError, setLastNameRequiredError] = useState(false);
   const [passwordRequiredError, setPasswordRequiredError] = useState(false);
   const [emailAlreadyTaken, setEmailAlreadyTaken] = useState(false);
+
+  const [showPlans, setShowPlans] = useState(false);
+  const [plansReady, setPlansReady] = useState(false);
+
+  const [showFinalize, setShowFinalize] = useState(false);
+  const [finalizeReady, setFinalizeReady] = useState(false);
+
+  const handleProceed = () => {
+    setShowPlans(false);
+    setShowFinalize(true);
+    };
     
   const validateForm = () => {
 
@@ -71,6 +85,7 @@ const Signup = () => {
         setEmailRequiredError(false)
         setPasswordRequiredError(false)
         signup(formData)
+        setShowPlans(true)
       }
 
       if (success===true && emailAlreadyExists) {
@@ -78,11 +93,20 @@ const Signup = () => {
       }
   }
 
+  const planSpringLeft = useSpring({
+    from: { width: '52%' },
+    to: { width: showPlans ? '25%' : '52%' },
+    config: { tension: 420, friction: 60 },
+    onRest: () => {
+        if (showPlans) setPlansReady(true);
+        }
+    });
+
   const navigate = useNavigate()
   return (
     <div className='flex flex-row h-screen w-full bg-black text-white'>
         {/* Left half Filler */}
-        <div className='rounded-4xl bg-neutral-900 w-[60%] m-4 flex flex-col justify-end items-center text-center'>
+        <animated.div style={planSpringLeft} className='rounded-4xl bg-neutral-900 m-4 flex flex-col justify-end items-center text-center'>
             <svg
                 className=" top-0 left-1/2 rounded-4xl"
                 width="100%"
@@ -116,14 +140,15 @@ const Signup = () => {
             </div>
 
             <div className='text-black m-8 gap-4 flex flex-col'>
-                <div className='bg-white rounded-xl px-20 py-2'>Sign Up your account</div>
-                <div className='bg-neutral-800 text-neutral-400 rounded-xl px-20 py-2'>Choose your plan</div>
-                <div className='bg-neutral-800 text-neutral-400 rounded-xl px-20 py-2'>Finalize</div>
+                <div className={`${showPlans?"bg-neutral-800 text-neutral-400":"bg-white"} transition-colors duration-300 rounded-xl px-20 py-2`}>Sign Up your account</div>
+                <div className={`${!showPlans?"bg-neutral-800 text-neutral-400":"bg-white"} transition-colors duration-300 rounded-xl px-20 py-2`}>Choose your plan</div>
+                <div className={`bg-neutral-800 text-neutral-400 transition-colors rounded-xl px-20 py-2`}>Finalize</div>
             </div>
-        </div>
+        </animated.div>
 
         {/* Form on right */}
-        <div className='my-4 flex flex-col items-center justify-center w-[40%] mx-20'>
+        <animated.div className={`my-4 flex flex-col items-center justify-center w-[40%] mx-auto px-10`}>
+            {!showPlans && !showFinalize &&(<>
             <div className='text-3xl font-semibold my-4'>Sign Up Account</div>
             <div className='text-neutral-400'>Enter your personal data to create your account.</div>
 
@@ -160,7 +185,13 @@ const Signup = () => {
                 <div className='text-neutral-400'>Already have an account?</div>
                 <div onClick={() => navigate('/login')} className='text-white'>Log In</div>
             </div>
-        </div>
+            </>)}
+
+            {plansReady && showPlans &&(<Plans onProceed={handleProceed} />)}
+            {showFinalize && (<Finalize />)}
+        </animated.div>
+
+
     </div>
   )
 }

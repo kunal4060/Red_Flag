@@ -57,7 +57,7 @@ const Login = () => {
     
     <div className='flex flex-row h-screen w-full bg-black text-white'>
         {/* Left half Filler */}
-        <div className='rounded-4xl bg-neutral-900 w-[60%] m-4 flex flex-col justify-end items-center text-center'>
+        <div className='rounded-4xl bg-neutral-900 w-[52%] m-4 flex flex-col justify-end items-center text-center'>
             <svg
                 className=" top-0 left-1/2 rounded-4xl"
                 width="100%"
@@ -97,7 +97,7 @@ const Login = () => {
         </div>
 
         {/* Form on right */}
-        <div className='my-4 flex flex-col items-center justify-center w-[40%] mx-20'>
+        <div className='my-4 flex flex-col items-center justify-center w-[40%] mx-auto px-10'>
             <div className='text-3xl font-semibold my-4'>Login to Account</div>
             <div className='text-neutral-400'>Enter your account details to Login to your account.</div>
 

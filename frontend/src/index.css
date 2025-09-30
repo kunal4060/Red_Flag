@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+.gradient-box {
+  background: linear-gradient(
+    90deg,
+    #656565,
+    #7f42a7,
+    #6600c5,
+    #5300a0,
+    #757575,
+    #656565
+  );
+  background-size: 200% 100%;
+  animation: scrollGradient 5s linear infinite;
+}

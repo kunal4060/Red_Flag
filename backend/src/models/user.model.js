@@ -24,15 +24,12 @@ const userSchema = new mongoose.Schema(
             required: true,
         },
 
-        profilePic: {
+        plan: {
             type: String,
-            default: "",
-        },
+            required: true,
+            default: "free"
+        }
 
-        status: {
-            type: String,
-            default: "Available"
-        },
     },
 
     {

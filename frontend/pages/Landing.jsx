@@ -8,6 +8,7 @@ const Landing = () => {
     <div>Landing Page</div>
     <button onClick={() => navigate("/login")}>Login</button>
     <button onClick={() => navigate("/signup")}>Sign Up</button>
+    <button onClick={() => navigate("/plans")}>Plans</button>
     </>
   )
 }
