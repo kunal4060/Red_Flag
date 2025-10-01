@@ -46,6 +46,7 @@ const Login = () => {
             setEmailRequiredError(false)
             setPasswordRequiredError(false)
             login(formData)
+            navigate('/dashboard')
         }
 
         if (success===true && !authUser) {

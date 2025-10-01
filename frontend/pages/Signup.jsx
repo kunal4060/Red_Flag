@@ -4,7 +4,7 @@ import TypingText from '../components/TypingText';
 import { useNavigate } from 'react-router-dom';
 import { useSpring, animated } from '@react-spring/web';
 import Plans from './Plans';
-import Finalize from './Finalize';
+import Survey from './Survey';
 const Signup = () => {
 
   const [showPassword, setShowPassword] = useState(false);
@@ -188,7 +188,7 @@ const Signup = () => {
             </>)}
 
             {plansReady && showPlans &&(<Plans onProceed={handleProceed} />)}
-            {showFinalize && (<Finalize />)}
+            {showFinalize && (<Survey />)}
         </animated.div>
 
 

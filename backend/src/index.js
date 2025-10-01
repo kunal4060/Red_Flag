@@ -5,6 +5,7 @@ import cors from "cors";
 import http from "http";
 
 import authRoutes from "./routes/auth.route.js";
+import surveyRoutes from "./routes/survey.route.js";
 
 import { connectDB } from "./lib/db.js";
 
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use(cors({origin: "http://localhost:5173", credentials: true}))
 
 app.use("/api/auth", authRoutes);
+app.use("/api/survey", surveyRoutes);;
 
 
 server.listen(PORT, () => {

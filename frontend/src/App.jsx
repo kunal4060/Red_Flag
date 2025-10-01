@@ -8,6 +8,7 @@ import Signup from '../pages/Signup.jsx'
 import Login from '../pages/Login.jsx'
 import Landing from '../pages/Landing.jsx'
 import Plans from '../pages/Plans.jsx'
+import Dashboard from '../pages/Dashboard.jsx'
 import { useAuthStore } from '../store/useAuthStore.js'
 
 const App = () => {
@@ -28,9 +29,10 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/signup" element={authUser ? <Signup /> : <Navigate to={"/"} />} />
-          <Route path="/login" element={authUser ? <Login /> : <Navigate to={"/"} />} />
+          <Route path="/signup" element={!authUser ? <Signup /> : <Navigate to={"/"} />} />
+          <Route path="/login" element={!authUser ? <Login /> : <Navigate to={"/"} />} />
           <Route path='/plans' element={authUser ? <Plans /> : <Navigate to="/login" />} />
+          <Route path='/dashboard' element={authUser ? <Dashboard /> : <Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
     )
