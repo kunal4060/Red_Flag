@@ -140,9 +140,18 @@ const Signup = () => {
             </div>
 
             <div className='text-black m-8 gap-4 flex flex-col'>
-                <div className={`${showPlans?"bg-neutral-800 text-neutral-400":"bg-white"} transition-colors duration-300 rounded-xl px-20 py-2`}>Sign Up your account</div>
-                <div className={`${!showPlans?"bg-neutral-800 text-neutral-400":"bg-white"} transition-colors duration-300 rounded-xl px-20 py-2`}>Choose your plan</div>
-                <div className={`bg-neutral-800 text-neutral-400 transition-colors rounded-xl px-20 py-2`}>Finalize</div>
+{/* Sign Up your account */}
+                <div className={`${(!showPlans && !showFinalize) ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"} transition-colors duration-300 rounded-xl px-20 py-2`}>
+                    Sign Up your account
+                </div>
+                {/* Choose your plan */}
+                <div className={`${(showPlans && !showFinalize) ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"} transition-colors duration-300 rounded-xl px-20 py-2`}>
+                    Choose your plan
+                </div>
+                {/* Finalize */}
+                <div className={`${showFinalize ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"} transition-colors duration-300 rounded-xl px-20 py-2`}>
+                    Finalize
+                </div>
             </div>
         </animated.div>
 
