@@ -10,10 +10,11 @@
     "service_worker": "background.js"
   },
   "permissions": [
-    "notifications",
-    "clipboardRead"
+    "storage",
+    "notifications"
   ],
   "host_permissions": [
-    "http://localhost:5001/*"
+    "https://www.virustotal.com/*",
+    "http://localhost/*"
   ]
 }

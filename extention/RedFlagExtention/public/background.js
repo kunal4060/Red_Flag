@@ -1,65 +1,119 @@
-// Register listener for messages from popup
+const VIRUSTOTAL_API_KEY = "9928b748ed404fc609a72a720e67252bfd7a2fd604a0e8585754ef9a9a6980af"; 
+const VT_BASE_URL = "https://www.virustotal.com/api/v3/urls";
+
+// helper — VirusTotal requires URL-safe Base64 encoding
+function encodeUrlForVT(url) {
+  const base64 = btoa(url);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// ---------------------- VirusTotal Scan ----------------------
+async function scanWithVirusTotal(link) {
+  try {
+    const encoded = encodeUrlForVT(link);
+    const res = await fetch(`${VT_BASE_URL}/${encoded}`, {
+      method: "GET",
+      headers: {
+        "accept": "application/json",
+        "x-apikey": VIRUSTOTAL_API_KEY.trim(),
+      },
+    });
+
+    if (res.status === 401) throw new Error("Unauthorized (401): Invalid or missing VirusTotal API key.");
+
+    if (res.status === 404) {
+      // URL not found — submit for scan
+      const postRes = await fetch(VT_BASE_URL, {
+        method: "POST",
+        headers: {
+          "x-apikey": VIRUSTOTAL_API_KEY.trim(),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `url=${encodeURIComponent(link)}`,
+      });
+
+      const postData = await postRes.json();
+      if (!postRes.ok) throw new Error(`VT submission failed: ${postRes.status} ${postRes.statusText}`);
+      return { submitted: true, vt: postData };
+    }
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`VT HTTP ${res.status} ${res.statusText}: ${errText}`);
+    }
+
+    const data = await res.json();
+    const results = data.data?.attributes?.last_analysis_results || {};
+
+    const unsafe = [];
+    const safe = [];
+    for (const [engine, r] of Object.entries(results)) {
+      if (r.category === "malicious" || r.category === "suspicious") unsafe.push({ engine_name: engine, category: r.category, result: r.result });
+      else safe.push({ engine_name: engine, category: r.category, result: r.result });
+    }
+
+    return { vt: data, unsafeSources: unsafe, safeSources: safe };
+  } catch (err) {
+    console.error("❌ VirusTotal scan error:", err);
+    return { error: err.message };
+  }
+}
+
+// ---------------------- AI Analysis ----------------------
+async function analyzeWithAI(link) {
+  const resp = await fetch("http://localhost:5001/api/ai/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: link }),
+  });
+
+  if (!resp.ok) throw new Error(`Backend error: ${resp.status} ${resp.statusText}`);
+  const data = await resp.json();
+  return data;
+}
+
+// ---------------------- Main Listener ----------------------
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.action !== "analyzeLink" || !message?.link) {
-    console.log("Invalid action or missing link");
-    sendResponse({ success: false, error: "Invalid action or missing link" });
+  if (!message?.action || !message?.link) {
+    sendResponse({ success: false, error: "Missing action or link" });
     return false;
   }
 
-  (async () => {
-    try {
-      console.log("Analyzing link:", message.link);
-      // call backend AI endpoint (no VirusTotal interaction)
-      const resp = await fetch("http://localhost:5001/api/ai/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: message.link }),
-      });
+  const link = message.link;
 
-      console.log("Backend response status:", resp.status);
-      
-      if (!resp.ok) {
-        const errorMsg = `Backend error: ${resp.status} ${resp.statusText}`;
-        console.log(errorMsg);
-        sendResponse({ success: false, error: errorMsg });
-        return;
+  if (message.action === "analyzeLinkAI") {
+    // AI analysis only
+    (async () => {
+      try {
+        const aiData = await analyzeWithAI(link);
+        sendResponse({ success: true, ai: aiData.ai });
+      } catch (err) {
+        sendResponse({ success: false, error: String(err) });
       }
+    })();
+    return true;
+  }
 
-      const data = await resp.json();
-      console.log("Backend response data:", data);
-
-      if (data?.success && data?.ai) {
-        const ai = data.ai;
-        // notify user with AI result summary
-        const label = ai.ai_result?.label || "unknown";
-        const score = typeof ai.ai_result?.score === "number" ? ai.ai_result.score : null;
-        const notifMessage = `${message.link}\nAI: ${label}${score !== null ? ` (${score.toFixed(3)})` : ""}`;
-
-        if (chrome.notifications && chrome.notifications.create) {
-          try {
-            chrome.notifications.create({
-              type: "basic",
-              iconUrl: "icon.png",
-              title: "AI Link Analysis",
-              message: notifMessage,
-            });
-          } catch (e) {
-            console.log("Notification error:", e);
-            // ignore notification errors
-          }
+  if (message.action === "analyzeLinkVT") {
+    // VirusTotal scan only
+    (async () => {
+      try {
+        const vtResult = await scanWithVirusTotal(link);
+        if (vtResult.error) {
+          sendResponse({ success: false, error: vtResult.error });
+        } else {
+          sendResponse({
+            success: true,
+            unsafeSources: vtResult.unsafeSources,
+            safeSources: vtResult.safeSources,
+          });
         }
-
-        sendResponse({ success: true, ai });
-      } else {
-        const errorMsg = data?.message || "AI analysis failed";
-        console.log("Analysis failed:", errorMsg);
-        sendResponse({ success: false, error: errorMsg });
+      } catch (err) {
+        sendResponse({ success: false, error: String(err) });
       }
-    } catch (err) {
-      console.error("background analyzeLink error:", err);
-      sendResponse({ success: false, error: String(err) });
-    }
-  })();
+    })();
+    return true;
+  }
 
-  return true; // keep message channel open
+  sendResponse({ success: false, error: "Invalid action" });
 });
