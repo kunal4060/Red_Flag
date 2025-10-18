@@ -1,55 +1,51 @@
-async function getCopiedText() {
-  try {
-    const text = await navigator.clipboard.readText();
-    return text;
-  } catch (err) {
-    console.error("Clipboard access denied:", err);
-    return null;
+// ...existing code...
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.action !== "analyzeLink" || !message?.link) {
+    sendResponse({ success: false, error: "Invalid action or missing link" });
+    return false;
   }
-}
 
-async function analyzeLink(link) {
-  const apiKey = "YOUR_VIRUSTOTAL_API_KEY"; // Replace this
-  const encodedUrl = btoa(link).replace(/=+$/, "");
-
-  try {
-    const response = await fetch(`https://www.virustotal.com/api/v3/urls/${encodedUrl}`, {
-      headers: { "x-apikey": apiKey },
-    });
-
-    if (!response.ok) throw new Error("API error");
-    const data = await response.json();
-
-    const stats = data.data.attributes.last_analysis_stats;
-    const malicious = stats.malicious;
-    const suspicious = stats.suspicious;
-
-    let result = "✅ Safe";
-    if (malicious > 0) result = `⚠️ Malicious (${malicious} engines)`;
-    else if (suspicious > 0) result = `⚠️ Suspicious`;
-
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: "icon.png",
-      title: "Link Scan Result",
-      message: `${link}\n${result}`,
-    });
-  } catch (err) {
-    console.error("Error:", err);
-  }
-}
-
-chrome.runtime.onMessage.addListener(async (msg) => {
-  if (msg.action === "analyzeClipboard") {
-    const text = await getCopiedText();
-    if (text && text.startsWith("http")) await analyzeLink(text);
-    else {
-      chrome.notifications.create({
-        type: "basic",
-        iconUrl: "icon.png",
-        title: "No Link Found",
-        message: "Clipboard doesn't contain a valid URL.",
+  (async () => {
+    try {
+      // call backend AI endpoint (no VirusTotal interaction)
+      const resp = await fetch("http://localhost:5001/api/ai/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: message.link }),
       });
+
+      const data = await resp.json();
+
+      if (data?.success && data?.ai) {
+        const ai = data.ai;
+        // notify user with AI result summary
+        const label = ai.ai_result?.label || "unknown";
+        const score = typeof ai.ai_result?.score === "number" ? ai.ai_result.score : null;
+        const notifMessage = `${message.link}\nAI: ${label}${score !== null ? ` (${score.toFixed(3)})` : ""}`;
+
+        if (chrome.notifications && chrome.notifications.create) {
+          try {
+            chrome.notifications.create({
+              type: "basic",
+              iconUrl: "icon.png",
+              title: "AI Link Analysis",
+              message: notifMessage,
+            });
+          } catch (e) {
+            // ignore notification errors
+          }
+        }
+
+        sendResponse({ success: true, ai });
+      } else {
+        sendResponse({ success: false, error: data?.message || "AI analysis failed" });
+      }
+    } catch (err) {
+      console.error("background analyzeLink error:", err);
+      sendResponse({ success: false, error: String(err) });
     }
-  }
+  })();
+
+  return true; // keep message channel open
 });
+// ...existing code...
