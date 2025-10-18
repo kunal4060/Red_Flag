@@ -14,6 +14,7 @@ const Signup = () => {
       lastName:"",
       password: ""
   });
+  const [focusedField, setFocusedField] = useState(null);
 
   const {authUser, signup, isSigningUp, emailAlreadyExists} = useAuthStore();
 
@@ -164,35 +165,89 @@ const Signup = () => {
             <div className='w-full flex flex-row gap-4 mt-8 justify-center'>
                 <div className='w-full flex flex-col gap-2'>
                     <div>First Name</div>
-                    <input onChange={(e) => setFormData({...formData, firstName:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. John' />
+                    <input 
+                      onChange={(e) => setFormData({...formData, firstName:e.target.value})} 
+                      className={`rounded-xl px-3 py-3 bg-neutral-800 transition-all duration-300 ${
+                        focusedField === 'firstName' ? 'ring-2 ring-red-500' : ''
+                      }`} 
+                      placeholder='eg. John' 
+                      onFocus={() => setFocusedField('firstName')}
+                      onBlur={() => setFocusedField(null)}
+                    />
                 </div>
 
                 <div className='w-full flex flex-col gap-2'>
                     <div>Last Name</div>
-                    <input onChange={(e) => setFormData({...formData, lastName:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. Doe' />
+                    <input 
+                      onChange={(e) => setFormData({...formData, lastName:e.target.value})} 
+                      className={`rounded-xl px-3 py-3 bg-neutral-800 transition-all duration-300 ${
+                        focusedField === 'lastName' ? 'ring-2 ring-red-500' : ''
+                      }`} 
+                      placeholder='eg. Doe' 
+                      onFocus={() => setFocusedField('lastName')}
+                      onBlur={() => setFocusedField(null)}
+                    />
                 </div>
             </div>
-            {firstNameRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>First Name is required</div>}
-            {lastNameRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>Last Name is required</div>}
+            {firstNameRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>First Name is required</div>}
+            {lastNameRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>Last Name is required</div>}
 
             <div className='flex flex-col gap-2 mt-4 w-full'>
                 <div className=''>Email</div>
-                <input onChange={(e) => setFormData({...formData, email:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. john.doe@example.com' />
-                {emailRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>Email is required</div>}
+                <input 
+                  onChange={(e) => setFormData({...formData, email:e.target.value})} 
+                  className={`rounded-xl px-3 py-3 bg-neutral-800 transition-all duration-300 ${
+                    focusedField === 'email' ? 'ring-2 ring-red-500' : ''
+                  }`} 
+                  placeholder='eg. john.doe@example.com' 
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                />
+                {emailRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>Email is required</div>}
+                {emailAlreadyTaken && <div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>Email already taken</div>}
             </div>
             
             <div className='flex flex-col gap-2 mt-4 w-full'>
                 <div className=''>Password</div>
-                <input onChange={(e) => setFormData({...formData, password:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='Enter your password' />
-                {passwordRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1'>Password is required</div>}
+                <div className='relative'>
+                  <input 
+                    type={showPassword ? "text" : "password"}
+                    onChange={(e) => setFormData({...formData, password:e.target.value})} 
+                    className={`rounded-xl px-3 py-3 bg-neutral-800 w-full transition-all duration-300 ${
+                      focusedField === 'password' ? 'ring-2 ring-red-500' : ''
+                    }`} 
+                    placeholder='Enter your password' 
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                  <button 
+                    type="button" 
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-white transition-colors duration-300"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {passwordRequiredError && <div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>Password is required</div>}
                 <div className='text-sm text-neutral-400'>Must be atleast 6 characters long</div>
             </div>
 
-            <button onClick={(e) => handleSubmit(e)} className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black'>Sign Up</button>
+            <button 
+              onClick={(e) => handleSubmit(e)} 
+              className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black transition-all duration-300 transform hover:scale-105'
+              disabled={isSigningUp}
+            >
+              {isSigningUp ? 'Signing Up...' : 'Sign Up'}
+            </button>
 
             <div className='flex flex-row gap-1 mt-8'>
                 <div className='text-neutral-400'>Already have an account?</div>
-                <div onClick={() => navigate('/login')} className='text-white'>Log In</div>
+                <div 
+                  onClick={() => navigate('/login')} 
+                  className='text-white cursor-pointer hover:text-red-400 transition-colors duration-300'
+                >
+                  Log In
+                </div>
             </div>
             </>)}
 

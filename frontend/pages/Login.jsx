@@ -14,6 +14,7 @@ const Login = () => {
         email:"",
         password: ""
     });
+    const [focusedField, setFocusedField] = useState(null);
 
     const [emailRequiredError, setEmailRequiredError] = useState(false);
     const [passwordRequiredError, setPasswordRequiredError] = useState(false);
@@ -71,8 +72,8 @@ const Login = () => {
             >
                 <defs>
                     <radialGradient id="circleGradient" cx="50%" cy="0%" r="80%">
-                        <stop offset="0%" stopColor="#ff3c6e" stopOpacity="0.7" />
-                        <stop offset="70%" stopColor="#ffb86c" stopOpacity="0.1" />
+                        <stop offset="0%" stopColor="#A40919" stopOpacity="0.7" />
+                        <stop offset="70%" stopColor="#A40919" stopOpacity="0.1" />
                         <stop offset="100%" stopColor="#000" stopOpacity="0" />
                     </radialGradient>
 
@@ -105,21 +106,59 @@ const Login = () => {
 
             <div className='flex flex-col gap-2 mt-4 w-full'>
                 <div className=''>Email</div>
-                <input onChange={(e) => setFormData({...formData, email:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='eg. john.doe@example.com' />
-                {emailRequiredError && (<div className='w-full text-left text-red-500 text-sm mt-1'>E-mail is required</div>)}
+                <input 
+                  onChange={(e) => setFormData({...formData, email:e.target.value})} 
+                  className={`rounded-xl px-3 py-3 bg-neutral-800 transition-all duration-300 ${
+                    focusedField === 'email' ? 'ring-2 ring-red-500' : ''
+                  }`} 
+                  placeholder='eg. john.doe@example.com' 
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                />
+                {emailRequiredError && (<div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>E-mail is required</div>)}
+                {wrongCrendentialsError && (<div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>Wrong credentials</div>)}
             </div>
             
             <div className='flex flex-col gap-2 mt-4 w-full'>
                 <div className=''>Password</div>
-                <input onChange={(e) => setFormData({...formData, password:e.target.value})} className='rounded-xl px-3 py-3 bg-neutral-800 ' placeholder='Enter your password' />
-                {passwordRequiredError && (<div className='w-full text-left text-red-500 text-sm mt-1'>Password is required</div>)}
+                <div className='relative'>
+                  <input 
+                    type={showPassword ? "text" : "password"}
+                    onChange={(e) => setFormData({...formData, password:e.target.value})} 
+                    className={`rounded-xl px-3 py-3 bg-neutral-800 w-full transition-all duration-300 ${
+                      focusedField === 'password' ? 'ring-2 ring-red-500' : ''
+                    }`} 
+                    placeholder='Enter your password' 
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                  <button 
+                    type="button" 
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-white transition-colors duration-300"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {passwordRequiredError && (<div className='w-full text-left text-red-500 text-sm mt-1 animate-pulse'>Password is required</div>)}
             </div>
 
-            <button onClick={(e) => handleSubmit(e)} className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black'>Login</button>
+            <button 
+              onClick={(e) => handleSubmit(e)} 
+              className='w-full rounded-xl px-4 py-2 bg-white hover:bg-neutral-100 mt-4 text-black transition-all duration-300 transform hover:scale-105'
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? 'Logging In...' : 'Login'}
+            </button>
 
             <div className='flex flex-row gap-1 mt-8'>
                 <div className='text-neutral-400'>Dont have an account?</div>
-                <div onClick={() => navigate('/signup')} className='text-white'>Sign Up</div>
+                <div 
+                  onClick={() => navigate('/signup')} 
+                  className='text-white cursor-pointer hover:text-red-400 transition-colors duration-300'
+                >
+                  Sign Up
+                </div>
             </div>
         </div>
     </div>
