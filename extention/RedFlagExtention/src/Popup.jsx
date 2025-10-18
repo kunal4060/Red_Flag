@@ -21,25 +21,42 @@ function Popup() {
       }
 
       setStatus("🔍 Sending to analysis service...");
-      chrome.runtime.sendMessage({ action: "analyzeLink", link }, (response) => {
-        if (chrome.runtime.lastError) {
-          setStatus("❌ Error: " + chrome.runtime.lastError.message);
-          return;
-        }
-        if (response?.success && response.ai) {
-          // response.ai comes from backend python wrapper: response.ai.ai_result expected
-          const ai = response.ai.ai_result || response.ai;
-          setAiResult(ai);
-          setStatus("✅ AI analysis complete");
-          // optional: if background returned unsafe/safe lists (VT earlier), set them
-          if (response.unsafeSources) setUnsafeList(response.unsafeSources);
-          if (response.safeSources) setSafeList(response.safeSources);
-        } else {
-          setStatus("❌ Analysis failed: " + (response?.error || "unknown error"));
-        }
+      
+      // Add timeout to prevent indefinite waiting
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      
+      const responsePromise = new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: "analyzeLink", link }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve(response);
+          }
+        });
       });
+
+      const response = await Promise.race([responsePromise, timeout]);
+
+      if (response?.success && response.ai) {
+        // response.ai comes from backend python wrapper: response.ai.ai_result expected
+        const ai = response.ai.ai_result || response.ai;
+        setAiResult(ai);
+        setStatus("✅ AI analysis complete");
+        // optional: if background returned unsafe/safe lists (VT earlier), set them
+        if (response.unsafeSources) setUnsafeList(response.unsafeSources);
+        if (response.safeSources) setSafeList(response.safeSources);
+      } else {
+        setStatus("❌ Analysis failed: " + (response?.error || "unknown error"));
+      }
     } catch (err) {
-      setStatus("❌ Clipboard read failed (permission?)");
+      console.error("Error in handleCheck:", err);
+      if (err.message === 'Request timeout') {
+        setStatus("❌ Request timed out. Is the backend running?");
+      } else {
+        setStatus("❌ Error: " + err.message);
+      }
     }
   };
 

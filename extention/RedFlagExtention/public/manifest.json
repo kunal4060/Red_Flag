@@ -2,19 +2,18 @@
   "manifest_version": 3,
   "name": "RedFlag Extension",
   "version": "1.0.0",
-  "description": "Analyze copied links with VirusTotal",
+  "description": "Analyze copied links with AI",
   "action": {
     "default_popup": "index.html"
   },
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "background.js"
   },
   "permissions": [
     "notifications",
-    "storage"
+    "clipboardRead"
   ],
   "host_permissions": [
-    "https://www.virustotal.com/*",
     "http://localhost:5001/*"
   ]
 }
