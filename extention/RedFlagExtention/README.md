@@ -1,16 +1,77 @@
-# React + Vite
+# RedFlag Browser Extension
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A browser extension for analyzing URLs and websites for potential security threats.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. **AI Analysis** - Analyze copied links with the RedFlag AI model
+2. **Deep Analysis** - Scan links with VirusTotal's comprehensive engine
+3. **Insight Analysis** - Analyze all links on the current website for security threats
 
-## React Compiler
+## Installation
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Build the extension:
+   ```bash
+   npm run build
+   ```
+4. Load the extension in Chrome:
+   - Open Chrome and go to `chrome://extensions`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select the `dist` folder
 
-## Expanding the ESLint configuration
+## Usage
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### AI Analysis
+1. Copy a URL to your clipboard
+2. Click "Run AI Analysis" in the extension popup
+3. View the AI classification result (malicious/benign) with confidence score
+
+### Deep Analysis
+1. Copy a URL to your clipboard
+2. Click "Run Deep Analysis" in the extension popup
+3. View comprehensive scan results from multiple security engines
+
+### Insight Analysis
+1. Navigate to any website
+2. Click "Insight Analysis" in the extension popup
+3. View live analysis of all links on the current page:
+   - Total links found
+   - Number of malicious vs benign links
+   - Detailed breakdown of each link's classification
+
+## Permissions
+
+- `activeTab` - To analyze the current website
+- `storage` - For future feature enhancements
+- `notifications` - To display analysis results
+- Access to `http://localhost/*` - For communication with the backend
+- Access to `https://www.virustotal.com/*` - For VirusTotal scans
+
+## Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview the production build
+
+### Project Structure
+
+- `src/` - React components and application logic
+- `public/` - Static assets and manifest file
+- `background.js` - Background script for handling API requests
+- `Popup.jsx` - Main popup UI component
+
+## API Integration
+
+The extension communicates with two services:
+
+1. **RedFlag Backend** (`http://localhost:5001`) - For AI analysis and website scanning
+2. **VirusTotal API** (`https://www.virustotal.com`) - For deep security scanning
+
+Make sure the RedFlag backend is running for full functionality.

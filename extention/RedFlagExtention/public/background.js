@@ -1,3 +1,4 @@
+/* global chrome */
 const VIRUSTOTAL_API_KEY = "9928b748ed404fc609a72a720e67252bfd7a2fd604a0e8585754ef9a9a6980af"; 
 const VT_BASE_URL = "https://www.virustotal.com/api/v3/urls";
 
@@ -72,19 +73,51 @@ async function analyzeWithAI(link) {
   return data;
 }
 
+// ---------------------- Website Analysis ----------------------
+async function analyzeWebsite(url) {
+  try {
+    // First, we need to fetch links from the website
+    // For this extension, we'll make a request to our backend API
+    // which has the link fetching and analysis capability
+    const resp = await fetch("http://localhost:5001/api/website/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url }),
+    });
+
+    if (!resp.ok) {
+      // If our backend API is not available, we'll return a specific error
+      if (resp.status === 404) {
+        throw new Error("Website analysis API not available. Please ensure the RedFlag backend is running.");
+      }
+      throw new Error(`Backend error: ${resp.status} ${resp.statusText}`);
+    }
+    
+    const data = await resp.json();
+    return data;
+  } catch (err) {
+    console.error("❌ Website analysis error:", err);
+    return { error: err.message };
+  }
+}
+
 // ---------------------- Main Listener ----------------------
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message?.action || !message?.link) {
-    sendResponse({ success: false, error: "Missing action or link" });
+  if (!message?.action) {
+    sendResponse({ success: false, error: "Missing action" });
     return false;
   }
 
-  const link = message.link;
-
   if (message.action === "analyzeLinkAI") {
     // AI analysis only
+    if (!message.link) {
+      sendResponse({ success: false, error: "Missing link for AI analysis" });
+      return false;
+    }
+    
     (async () => {
       try {
+        const link = message.link; // Extract link from message
         const aiData = await analyzeWithAI(link);
         sendResponse({ success: true, ai: aiData.ai });
       } catch (err) {
@@ -96,8 +129,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "analyzeLinkVT") {
     // VirusTotal scan only
+    if (!message.link) {
+      sendResponse({ success: false, error: "Missing link for VT analysis" });
+      return false;
+    }
+    
     (async () => {
       try {
+        const link = message.link; // Extract link from message
         const vtResult = await scanWithVirusTotal(link);
         if (vtResult.error) {
           sendResponse({ success: false, error: vtResult.error });
@@ -106,6 +145,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             success: true,
             unsafeSources: vtResult.unsafeSources,
             safeSources: vtResult.safeSources,
+          });
+        }
+      } catch (err) {
+        sendResponse({ success: false, error: String(err) });
+      }
+    })();
+    return true;
+  }
+
+  if (message.action === "analyzeWebsite") {
+    // Website analysis
+    (async () => {
+      try {
+        // Get the current active tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab || !tab.url) {
+          sendResponse({ success: false, error: "No active tab found" });
+          return;
+        }
+        
+        const websiteData = await analyzeWebsite(tab.url);
+        if (websiteData.error) {
+          sendResponse({ success: false, error: websiteData.error });
+        } else {
+          sendResponse({
+            success: true,
+            websiteData: websiteData
           });
         }
       } catch (err) {

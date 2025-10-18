@@ -7,6 +7,7 @@ import http from "http";
 import authRoutes from "./routes/auth.route.js";
 import surveyRoutes from "./routes/survey.route.js";
 import aiRoutes from "./routes/ai.route.js";
+import websiteRoutes from "./routes/website.route.js";
 
 import { connectDB } from "./lib/db.js";
 
@@ -25,6 +26,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/survey", surveyRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/website", websiteRoutes);
 
 
 server.listen(PORT, () => {

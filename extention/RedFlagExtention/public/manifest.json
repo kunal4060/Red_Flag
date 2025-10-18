@@ -11,7 +11,8 @@
   },
   "permissions": [
     "storage",
-    "notifications"
+    "notifications",
+    "activeTab"
   ],
   "host_permissions": [
     "https://www.virustotal.com/*",

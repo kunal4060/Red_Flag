@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Website for Link Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .links {
+            margin-top: 30px;
+        }
+        .links a {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .links a:hover {
+            background-color: #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Website for Link Analysis</h1>
+        <p>This is a sample website with various links for testing the RedFlag link analyzer.</p>
+        
+        <div class="links">
+            <h2>Safe Links</h2>
+            <a href="https://www.google.com">Google</a>
+            <a href="https://www.github.com">GitHub</a>
+            <a href="https://www.stackoverflow.com">Stack Overflow</a>
+            <a href="https://www.wikipedia.org">Wikipedia</a>
+            <a href="https://www.mozilla.org">Mozilla</a>
+            
+            <h2>Potentially Suspicious Links</h2>
+            <a href="http://malware.testing.google.test/testing/malware/">Malware Test Site</a>
+            <a href="http://www.phishing-test.com">Phishing Test Site</a>
+            <a href="http://unshorten.it">URL Shortener</a>
+            
+            <h2>Relative Links</h2>
+            <a href="/about.html">About Us</a>
+            <a href="/contact.html">Contact</a>
+            <a href="/services.html">Services</a>
+        </div>
+    </div>
+</body>
+</html>
