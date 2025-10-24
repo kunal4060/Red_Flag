@@ -202,20 +202,26 @@ chrome.webNavigation.onBeforeNavigate.addListener(
     const tabId = details.tabId;
     const url = details.url;
     
-    // Skip internal Chrome pages
+    // Skip internal Chrome pages and data URLs
     if (url.startsWith('chrome://') || 
         url.startsWith('chrome-extension://') || 
         url.startsWith('about:') ||
+        url.startsWith('data:') ||
         url === 'about:blank') {
       return;
     }
     
     // Skip if this URL has been approved by user
     if (allowedNavigations.has(url)) {
-      console.log('🛡️ RedFlag Background: URL approved, allowing:', url);
+      console.log('🛡️ RedFlag Background: ✅ URL IS WHITELISTED, allowing navigation:', url);
       allowedNavigations.delete(url); // Remove after use
+      // Clean up state for this tab
+      analyzingTabs.delete(tabId);
+      blockedUrls.delete(tabId);
       return;
     }
+    
+    console.log('🛡️ RedFlag Background: URL NOT in whitelist. Current whitelist:', Array.from(allowedNavigations));
     
     // Skip if already analyzing this tab
     if (analyzingTabs.has(tabId)) {
@@ -266,11 +272,58 @@ chrome.webNavigation.onBeforeNavigate.addListener(
     analyzingTabs.add(tabId);
     blockedUrls.set(tabId, url);
     
-    // IMMEDIATELY stop the navigation by updating to about:blank
-    // This must be synchronous to prevent the original navigation
-    chrome.tabs.update(tabId, { url: 'about:blank' }, () => {
-      // After redirecting to blank, perform analysis
-      performTabAnalysis(tabId, url);
+    // Store the original URL for later use
+    chrome.storage.local.set({ [`pendingUrl_${tabId}`]: url });
+    
+    // IMMEDIATELY stop the navigation by updating to a data URL with the analysis page
+    // This avoids the sandboxing issue with about:blank
+    const loadingPage = `data:text/html;charset=utf-8,${encodeURIComponent(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>RedFlag Security Check</title>
+      </head>
+      <body style="margin: 0; padding: 0; background: #000;">
+        <div style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.95);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        ">
+          <div style="text-align: center; color: white;">
+            <div style="font-size: 64px; margin-bottom: 20px;">🛡️</div>
+            <h2 style="color: #ef4444; font-size: 28px; font-weight: bold; margin-bottom: 10px;">RedFlag Security Check</h2>
+            <p style="color: #9ca3af; font-size: 16px; margin-bottom: 20px;">Analyzing link safety...</p>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; margin: 20px auto; max-width: 500px; word-break: break-all;">
+              <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">Target URL:</p>
+              <p style="color: #fff; font-size: 14px;">${url}</p>
+            </div>
+            <div style="margin-top: 30px;">
+              <svg style="width: 48px; height: 48px; animation: spin 1s linear infinite; margin: 0 auto;" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="#ef4444" stroke-width="2" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <style>
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        </style>
+      </body>
+      </html>
+    `)}`;
+    
+    chrome.tabs.update(tabId, { url: loadingPage }, () => {
+      // After redirecting to loading page, perform analysis
+      setTimeout(() => performTabAnalysis(tabId, url), 500);
     });
   },
   { url: [{ schemes: ['http', 'https'] }] }
@@ -280,184 +333,211 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 async function performTabAnalysis(tabId, targetUrl) {
   try {
     console.log('🛡️ RedFlag Background: Starting analysis for tab', tabId, 'URL:', targetUrl);
+    console.log('🛡️ RedFlag Background: URL type:', typeof targetUrl, 'URL value:', JSON.stringify(targetUrl));
     
-    // Wait for about:blank to load (already redirected in the listener)
+    // Validate targetUrl before proceeding
+    if (!targetUrl || targetUrl === 'null' || targetUrl === 'undefined' || targetUrl === 'about:blank') {
+      console.error('🛡️ RedFlag Background: Invalid targetUrl, aborting analysis');
+      analyzingTabs.delete(tabId);
+      blockedUrls.delete(tabId);
+      return;
+    }
+    
+    // Wait for the data URL page to load
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Inject loading screen
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      func: (targetUrl) => {
-        document.body.style.cssText = 'margin: 0; padding: 0; background: #000;';
-        document.body.innerHTML = `
-          <div style="
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          ">
-            <div style="text-align: center; color: white;">
-              <div style="font-size: 64px; margin-bottom: 20px;">🛡️</div>
-              <h2 style="color: #ef4444; font-size: 28px; font-weight: bold; margin-bottom: 10px;">RedFlag Security Check</h2>
-              <p style="color: #9ca3af; font-size: 16px; margin-bottom: 20px;">Analyzing link safety...</p>
-              <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; margin: 20px auto; max-width: 500px; word-break: break-all;">
-                <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">Target URL:</p>
-                <p style="color: #fff; font-size: 14px;">${targetUrl}</p>
-              </div>
-              <div style="margin-top: 30px;">
-                <svg style="width: 48px; height: 48px; animation: spin 1s linear infinite; margin: 0 auto;" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="#ef4444" stroke-width="2" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <style>
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          </style>
-        `;
-      },
-      args: [targetUrl]
-    });
     
     // Analyze the URL
     const analysisResult = await analyzeWebsite(targetUrl);
+    console.log('🛡️ RedFlag Background: Analysis complete. Result:', analysisResult);
     
-    // Show results in the tab
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      func: (url, result) => {
-        const data = result.websiteData || result;
-        const results = data.results || [];
-        const maliciousCount = results.filter(r => r.analysis?.ai_result?.label === "malicious").length;
-        const benignCount = results.filter(r => r.analysis?.ai_result?.label === "benign").length;
-        const isSafe = maliciousCount === 0;
-        const riskColor = isSafe ? '#10b981' : maliciousCount < 3 ? '#f59e0b' : '#ef4444';
-        const hasError = result.error || !result.websiteData;
-        
-        document.body.innerHTML = `
-          <div style="
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
-            padding: 40px 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          ">
-            <div style="max-width: 700px; margin: 0 auto;">
-              ${hasError ? `
-                <div style="text-align: center; margin-bottom: 40px;">
-                  <div style="font-size: 80px; margin-bottom: 16px;">❌</div>
-                  <h1 style="color: #ef4444; font-size: 32px; font-weight: bold; margin-bottom: 12px;">
-                    Analysis Failed
-                  </h1>
-                  <p style="color: #9ca3af; font-size: 16px; margin-bottom: 20px;">
-                    ${result.error || 'Unable to analyze this website'}
-                  </p>
-                </div>
-              ` : `
-                <div style="text-align: center; margin-bottom: 40px;">
-                  <div style="font-size: 80px; margin-bottom: 16px;">${isSafe ? '✅' : '⚠️'}</div>
-                  <h1 style="color: ${riskColor}; font-size: 32px; font-weight: bold; margin-bottom: 12px;">
-                    ${isSafe ? 'Safe to Proceed' : 'Potential Risk Detected'}
-                  </h1>
-                  <div style="display: inline-block; background: ${riskColor}20; border: 2px solid ${riskColor}; border-radius: 25px; padding: 10px 24px;">
-                    <span style="color: ${riskColor}; font-size: 14px; font-weight: 600;">
-                      Risk Level: ${maliciousCount === 0 ? 'Low' : maliciousCount < 3 ? 'Medium' : 'High'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 30px;">
-                  <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
-                    <div style="color: #3b82f6; font-size: 36px; font-weight: bold;">${data.total_links || 0}</div>
-                    <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Links Found</div>
-                  </div>
-                  <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
-                    <div style="color: #a855f7; font-size: 36px; font-weight: bold;">${data.links_analyzed || 0}</div>
-                    <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Analyzed</div>
-                  </div>
-                  <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
-                    <div style="color: #ef4444; font-size: 36px; font-weight: bold;">${maliciousCount}</div>
-                    <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Malicious</div>
-                  </div>
-                  <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
-                    <div style="color: #10b981; font-size: 36px; font-weight: bold;">${benignCount}</div>
-                    <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Benign</div>
-                  </div>
-                </div>
-              `}
-              
-              <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
-                <p style="color: #9ca3af; font-size: 13px; margin-bottom: 10px;">Target URL:</p>
-                <p style="color: #fff; font-size: 15px; word-break: break-all;">${url}</p>
-              </div>
-              
-              <div style="display: flex; gap: 16px; margin-top: 40px;">
-                <button onclick="window.close()" style="
-                  flex: 1;
-                  background: #374151;
-                  color: white;
-                  border: none;
-                  border-radius: 12px;
-                  padding: 18px;
-                  font-size: 16px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: all 0.2s;
-                " onmouseover="this.style.background='#4b5563'" onmouseout="this.style.background='#374151'">
-                  ✖️ Close Tab
-                </button>
-                <button onclick="(function(){ 
-                  chrome.runtime.sendMessage({ action: 'allowNavigation', url: '${url}', tabId: ${tabId} }, function(response) {
-                    if (response && response.success) {
-                      setTimeout(function() { window.location.href='${url}'; }, 100);
-                    }
-                  });
-                })()" style="
-                  flex: 1;
-                  background: ${hasError ? '#6b7280' : (isSafe ? '#10b981' : '#ef4444')};
-                  color: white;
-                  border: none;
-                  border-radius: 12px;
-                  padding: 18px;
-                  font-size: 16px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: all 0.2s;
-                " onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                  ${hasError ? '➡️ Proceed Anyway' : (isSafe ? '✓ Proceed Safely' : '⚠️ Proceed Anyway')}
-                </button>
-              </div>
-              
-              <p style="color: #6b7280; font-size: 12px; text-align: center; margin-top: 24px;">
-                Powered by RedFlag AI Security
-              </p>
-            </div>
-          </div>
-        `;
-      },
-      args: [targetUrl, analysisResult]
-    });
+    // Show results by navigating to a new data URL with the results
+    const resultsPage = createResultsPage(targetUrl, analysisResult);
+    
+    await chrome.tabs.update(tabId, { url: resultsPage });
     
   } catch (err) {
     console.error('🛡️ RedFlag Background: Error intercepting tab:', err);
     // If there's an error, allow navigation to proceed
     try {
-      await chrome.tabs.update(tabId, { url: blockedUrls.get(tabId) });
+      const originalUrl = blockedUrls.get(tabId);
+      if (originalUrl) {
+        allowedNavigations.add(originalUrl);
+        setTimeout(() => allowedNavigations.delete(originalUrl), 10000);
+        await chrome.tabs.update(tabId, { url: originalUrl });
+      }
     } catch (e) {
       console.error('🛡️ RedFlag Background: Error restoring navigation:', e);
     }
-  } finally {
+    // Clean up state on error
     analyzingTabs.delete(tabId);
     tabCreationTime.delete(tabId);
     blockedUrls.delete(tabId);
   }
+}
+
+// ---------------------- Create Results Page ----------------------
+function createResultsPage(destinationUrl, result) {
+  const data = result.websiteData || result;
+  const results = data.results || [];
+  const maliciousCount = results.filter(r => r.analysis?.ai_result?.label === "malicious").length;
+  const benignCount = results.filter(r => r.analysis?.ai_result?.label === "benign").length;
+  const isSafe = maliciousCount === 0;
+  const riskColor = isSafe ? '#10b981' : maliciousCount < 3 ? '#f59e0b' : '#ef4444';
+  const hasError = result.error || !result.websiteData;
+  
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>RedFlag Security Analysis</title>
+</head>
+<body style="margin: 0; padding: 0;">
+  <div style="
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
+    padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  ">
+    <div style="max-width: 700px; margin: 0 auto;">
+      ${hasError ? `
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="font-size: 80px; margin-bottom: 16px;">❌</div>
+          <h1 style="color: #ef4444; font-size: 32px; font-weight: bold; margin-bottom: 12px;">
+            Analysis Failed
+          </h1>
+          <p style="color: #9ca3af; font-size: 16px; margin-bottom: 20px;">
+            ${result.error || 'Unable to analyze this website'}
+          </p>
+        </div>
+      ` : `
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="font-size: 80px; margin-bottom: 16px;">${isSafe ? '✅' : '⚠️'}</div>
+          <h1 style="color: ${riskColor}; font-size: 32px; font-weight: bold; margin-bottom: 12px;">
+            ${isSafe ? 'Safe to Proceed' : 'Potential Risk Detected'}
+          </h1>
+          <div style="display: inline-block; background: ${riskColor}20; border: 2px solid ${riskColor}; border-radius: 25px; padding: 10px 24px;">
+            <span style="color: ${riskColor}; font-size: 14px; font-weight: 600;">
+              Risk Level: ${maliciousCount === 0 ? 'Low' : maliciousCount < 3 ? 'Medium' : 'High'}
+            </span>
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 30px;">
+          <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
+            <div style="color: #3b82f6; font-size: 36px; font-weight: bold;">${data.total_links || 0}</div>
+            <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Links Found</div>
+          </div>
+          <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
+            <div style="color: #a855f7; font-size: 36px; font-weight: bold;">${data.links_analyzed || 0}</div>
+            <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Analyzed</div>
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
+            <div style="color: #ef4444; font-size: 36px; font-weight: bold;">${maliciousCount}</div>
+            <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Malicious</div>
+          </div>
+          <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 24px; text-align: center;">
+            <div style="color: #10b981; font-size: 36px; font-weight: bold;">${benignCount}</div>
+            <div style="color: #9ca3af; font-size: 13px; margin-top: 8px;">Benign</div>
+          </div>
+        </div>
+      `}
+      
+      <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 10px;">Target URL:</p>
+        <p style="color: #fff; font-size: 15px; word-break: break-all;">${destinationUrl}</p>
+      </div>
+      
+      <div style="display: flex; gap: 16px; margin-top: 40px;">
+        <button id="closeTabBtn" style="
+          flex: 1;
+          background: #374151;
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 18px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        ">
+          ✖️ Close Tab
+        </button>
+        <button id="proceedBtn" style="
+          flex: 1;
+          background: ${hasError ? '#6b7280' : (isSafe ? '#10b981' : '#ef4444')};
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 18px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        ">
+          ${hasError ? '➡️ Proceed Anyway' : (isSafe ? '✓ Proceed Safely' : '⚠️ Proceed Anyway')}
+        </button>
+      </div>
+      
+      <p style="color: #6b7280; font-size: 12px; text-align: center; margin-top: 24px;">
+        Powered by RedFlag AI Security
+      </p>
+    </div>
+  </div>
+  <script>
+    const REDFLAG_TARGET_URL = ${JSON.stringify(destinationUrl)};
+    console.log('🛡️ RedFlag Page: Target URL stored:', REDFLAG_TARGET_URL);
+    console.log('🛡️ RedFlag Page: Current location:', window.location.href);
+    
+    document.getElementById('closeTabBtn').addEventListener('click', () => {
+      window.close();
+    });
+    
+    document.getElementById('proceedBtn').addEventListener('click', () => {
+      console.log('🛡️ RedFlag Page: ========== PROCEED BUTTON CLICKED ==========');
+      console.log('🛡️ RedFlag Page: Target URL:', REDFLAG_TARGET_URL);
+      console.log('🛡️ RedFlag Page: URL type:', typeof REDFLAG_TARGET_URL);
+      
+      if (!REDFLAG_TARGET_URL || REDFLAG_TARGET_URL === 'null' || REDFLAG_TARGET_URL === 'undefined') {
+        console.error('🛡️ RedFlag Page: ❌ Invalid target URL!');
+        alert('Error: Invalid target URL');
+        return;
+      }
+      
+      console.log('🛡️ RedFlag Page: Sending allowNavigation message...');
+      
+      // Disable the button to prevent double clicks
+      const btn = document.getElementById('proceedBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Redirecting...';
+      
+      // Send message to background to whitelist and navigate
+      chrome.runtime.sendMessage({ action: 'allowNavigation', url: REDFLAG_TARGET_URL }, (response) => {
+        console.log('🛡️ RedFlag Page: Received response:', response);
+        
+        if (chrome.runtime.lastError) {
+          console.error('🛡️ RedFlag Page: ❌ Chrome runtime error:', chrome.runtime.lastError);
+          alert('Error: ' + chrome.runtime.lastError.message);
+          btn.disabled = false;
+          btn.textContent = '➡️ Try Again';
+          return;
+        }
+        
+        if (response && response.success) {
+          console.log('🛡️ RedFlag Page: ✅ Navigation initiated by background script');
+          // Background script handles the navigation
+        } else {
+          console.error('🛡️ RedFlag Page: ❌ Failed:', response);
+          alert('Navigation failed: ' + (response?.error || 'Unknown error'));
+          btn.disabled = false;
+          btn.textContent = '➡️ Try Again';
+        }
+      });
+    });
+  </script>
+</body>
+</html>`;
+  
+  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
 
 // ---------------------- Main Listener ----------------------
@@ -648,19 +728,70 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle allowNavigation action (when user clicks Proceed in intercepted tab)
   if (message.action === "allowNavigation") {
     const url = message.url;
-    const tabId = message.tabId;
-    if (url) {
-      console.log('🛡️ RedFlag Background: Allowing navigation to:', url, 'for tab:', tabId);
-      // Add to allowed set
-      allowedNavigations.add(url);
-      // Also mark this tab as no longer analyzing
+    console.log('🛡️ RedFlag Background: ========== ALLOW NAVIGATION REQUEST ==========');
+    console.log('🛡️ RedFlag Background: Raw URL received:', url);
+    console.log('🛡️ RedFlag Background: URL type:', typeof url);
+    console.log('🛡️ RedFlag Background: Sender tab:', sender.tab);
+    
+    if (!url || url === 'null' || url === 'undefined' || url === '') {
+      console.error('🛡️ RedFlag Background: ❌ Invalid URL received:', url);
+      sendResponse({ success: false, error: 'Invalid URL: ' + url });
+      return false;
+    }
+    
+    // Ensure URL is properly formatted and absolute
+    let finalUrl = url;
+    try {
+      // Try to parse as URL to ensure it's valid
+      const urlObj = new URL(url);
+      finalUrl = urlObj.href;
+      console.log('🛡️ RedFlag Background: Validated URL:', finalUrl);
+    } catch (e) {
+      console.error('🛡️ RedFlag Background: Invalid URL format:', e.message);
+      sendResponse({ success: false, error: 'Invalid URL format: ' + url });
+      return false;
+    }
+    
+    console.log('🛡️ RedFlag Background: ✅ User approved navigation to:', finalUrl);
+    console.log('🛡️ RedFlag Background: Adding to whitelist...');
+    
+    // Add to allowed set with temporary whitelist (per memory)
+    allowedNavigations.add(finalUrl);
+    console.log('🛡️ RedFlag Background: Whitelist now contains:', Array.from(allowedNavigations));
+    
+    // Auto-remove after 10 seconds to prevent stale entries
+    setTimeout(() => {
+      allowedNavigations.delete(finalUrl);
+      console.log('🛡️ RedFlag Background: Removed', finalUrl, 'from whitelist after 10s');
+    }, 10000);
+    
+    // Navigate the sender tab to the approved URL
+    if (sender.tab && sender.tab.id) {
+      const tabId = sender.tab.id;
+      
+      // Clean up state for this tab since user approved
       analyzingTabs.delete(tabId);
       blockedUrls.delete(tabId);
-      // Auto-remove after 10 seconds to prevent stale entries
-      setTimeout(() => allowedNavigations.delete(url), 10000);
+      tabCreationTime.delete(tabId);
+      console.log('🛡️ RedFlag Background: Cleaned up state for tab', tabId);
+      console.log('🛡️ RedFlag Background: ➡️ NOW NAVIGATING TAB', tabId, 'TO:', finalUrl);
+      
+      // Use chrome.tabs.update to navigate
+      chrome.tabs.update(tabId, { url: finalUrl }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('🛡️ RedFlag Background: ❌ Navigation error:', chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log('🛡️ RedFlag Background: ✅✅✅ NAVIGATION SUCCESSFUL TO:', finalUrl);
+          sendResponse({ success: true });
+        }
+      });
+      return true; // Keep channel open for async response
+    } else {
+      console.error('🛡️ RedFlag Background: ❌ No sender tab information!');
+      sendResponse({ success: false, error: 'No sender tab information' });
+      return false;
     }
-    sendResponse({ success: true });
-    return false;
   }
 
   // Handle allowNavigationFromContent (when user clicks Proceed in content script overlay)

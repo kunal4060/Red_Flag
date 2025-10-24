@@ -57,10 +57,10 @@ function showLoading(url) {
         🔍 Analyzing Destination Website
       </h2>
       <p style="color: #9ca3af; font-size: 14px; margin-bottom: 8px;">
-        Running Insight Analysis on the link destination...
+        Running ML analysis...
       </p>
       <p style="color: #6b7280; font-size: 12px; margin-bottom: 16px;">
-        Fetching and analyzing all links from the target site
+        Fetching and analyzing links with ML model
       </p>
       <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; margin-top: 16px; word-break: break-all;">
         <p style="color: #6b7280; font-size: 12px; margin-bottom: 4px;">Destination URL:</p>
@@ -197,7 +197,7 @@ function showResults(url, analysisData) {
       </div>
       
       <p style="color: #6b7280; font-size: 11px; text-align: center; margin-top: 16px;">
-        Powered by RedFlag AI Security
+        Powered by RedFlag Security
       </p>
     </div>
   `;
@@ -223,7 +223,7 @@ function showResults(url, analysisData) {
           }, 100);
         }
       });
-      pendingUrl = null;
+      //pendingUrl = null;
     }
   });
 }
@@ -302,12 +302,12 @@ function removeOverlay() {
   isAnalyzing = false;
 }
 
-// Analyze URL with insight analysis
+// Analyze URL with Kaggle Random Forest (for interceptor)
 async function analyzeUrl(url) {
   return new Promise((resolve) => {
     try {
       chrome.runtime.sendMessage(
-        { action: "analyzeWebsite", url: url },
+        { action: "analyzeWebsiteForInterceptor", url: url },
         (response) => {
           // Check for extension context invalidation
           if (chrome.runtime.lastError) {
