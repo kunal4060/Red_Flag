@@ -10,6 +10,7 @@ import aiRoutes from "./routes/ai.route.js";
 import websiteRoutes from "./routes/website.route.js";
 
 import { connectDB } from "./lib/db.js";
+import aiService from "./services/ai.service.js";
 
 dotenv.config()
 
@@ -29,7 +30,17 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/website", websiteRoutes);
 
 
-server.listen(PORT, () => {
-    console.log("Server is running on port:" + PORT)
-    connectDB()
+server.listen(PORT, async () => {
+    console.log("Server is running on port:" + PORT);
+    connectDB();
+    
+    // Initialize AI service
+    try {
+        console.log("Initializing AI service...");
+        await aiService.initialize();
+        console.log("AI service initialized successfully");
+    } catch (err) {
+        console.error("Failed to initialize AI service:", err);
+        console.error("Website analysis features may not work properly");
+    }
 });

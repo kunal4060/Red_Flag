@@ -9,13 +9,30 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
   "permissions": [
     "storage",
     "notifications",
-    "activeTab"
+    "activeTab",
+    "webNavigation",
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.virustotal.com/*",
     "http://localhost/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icon.png"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }

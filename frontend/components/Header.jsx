@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuthStore } from '../store/useAuthStore'
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { authUser } = useAuthStore();
   const [showTeam, setShowTeam] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   
@@ -34,6 +36,16 @@ const Header = () => {
       }
     } else {
       navigate('/#team');
+    }
+  };
+
+  const handleApplyNow = () => {
+    // If user is authenticated (has token), go to dashboard
+    // Otherwise, go to signup
+    if (authUser) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
     }
   };
 
@@ -90,9 +102,9 @@ const Header = () => {
 
         <div 
           className='text-base rounded-3xl bg-gradient-to-r from-red-900 to-black text-white px-4 py-2 hover:from-red-950 hover:to-gray-800 cursor-pointer border border-red-700 transition-all duration-300 transform hover:scale-105 flex items-center'
-          onClick={() => navigate('/signup')}
+          onClick={handleApplyNow}
         >
-          Apply Now
+          {authUser ? 'Dashboard' : 'Apply Now'}
         </div>
     </div>
   )

@@ -3,11 +3,12 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fs from "fs";
+import aiService from "../services/ai.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const analyzeWebsite = (req, res) => {
+export const analyzeWebsite = async (req, res) => {
   try {
     // Log the request body for debugging
     console.log("Request body:", req.body);
@@ -18,81 +19,93 @@ export const analyzeWebsite = (req, res) => {
       return res.status(400).json({ message: "url required" });
     }
 
-    // Path to the website_analysis.py script
-    const scriptPath = path.resolve(__dirname, "..", "..", "website_analysis.py");
+    // Path to the fetch_links.py script
+    const fetchScriptPath = path.resolve(__dirname, "..", "..", "..", "AI", "fetch_links.py");
     
     // Check if the script exists
-    if (!fs.existsSync(scriptPath)) {
+    if (!fs.existsSync(fetchScriptPath)) {
       return res.status(500).json({ 
         success: false, 
-        message: "Analysis script not found",
-        error: `Script not found at ${scriptPath}. Please ensure the RedFlag project is properly set up.`
+        message: "Fetch links script not found",
+        error: `Script not found at ${fetchScriptPath}`
       });
     }
     
-    // Spawn Python process with the script
-    const py = spawn("python", [scriptPath, "--url", url], {
-      cwd: path.resolve(__dirname, "..", "..")
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    py.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    
-    py.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    py.on("close", (code) => {
-      // Log output for debugging
-      console.log("Python script output - stdout:", stdout);
-      console.log("Python script output - stderr:", stderr);
-      console.log("Python script exit code:", code);
-      
-      if (code !== 0) {
-        console.log("Sending error response due to non-zero exit code");
-        return res.status(500).json({ 
-          success: false, 
-          message: "Python script error", 
-          error: stderr || stdout 
+    // Fetch links from the website
+    const fetchLinks = () => {
+      return new Promise((resolve, reject) => {
+        const py = spawn("python", [fetchScriptPath, url], {
+          cwd: path.resolve(__dirname, "..", "..", "..")
         });
-      }
 
-      try {
-        // The script outputs JSON, so we parse it
-        const cleanStdout = stdout.trim();
-        console.log("Attempting to parse JSON:", cleanStdout);
-        const parsed = JSON.parse(cleanStdout);
-        console.log("Successfully parsed JSON, sending response");
-        return res.status(200).json({ success: true, data: parsed });
-      } catch (err) {
-        console.log("Failed to parse JSON:", err);
-        return res.status(500).json({ 
-          success: false, 
-          message: "Failed to parse Python output", 
-          error: err.toString(),
-          raw: stdout
+        let stdout = "";
+        let stderr = "";
+
+        py.stdout.on("data", (data) => {
+          stdout += data.toString();
         });
-      }
-    });
+        
+        py.stderr.on("data", (data) => {
+          stderr += data.toString();
+        });
 
-    py.on("error", (err) => {
-      console.log("Python process error:", err);
-      return res.status(500).json({ 
-        success: false, 
-        message: "Python process failed", 
-        error: err.toString() 
+        py.on("close", (code) => {
+          if (code !== 0) {
+            reject(new Error(stderr || "Failed to fetch links"));
+          } else {
+            try {
+              const parsed = JSON.parse(stdout.trim());
+              resolve(parsed);
+            } catch (err) {
+              reject(new Error("Failed to parse fetch links output"));
+            }
+          }
+        });
+
+        py.on("error", (err) => {
+          reject(err);
+        });
       });
-    });
+    };
+
+    // Fetch the links
+    console.log("Fetching links from:", url);
+    const linksData = await fetchLinks();
+    console.log(`Found ${linksData.count} links`);
+
+    if (!linksData.links || linksData.links.length === 0) {
+      return res.status(200).json({ 
+        success: true, 
+        data: {
+          input_url: url,
+          total_links: 0,
+          links_analyzed: 0,
+          results: []
+        }
+      });
+    }
+
+    // Analyze each link with the AI service
+    console.log("Analyzing links with AI service...");
+    const results = await aiService.predictBatch(linksData.links);
+    console.log("Analysis complete");
+
+    // Format the response
+    const response = {
+      input_url: url,
+      total_links: linksData.count,
+      links_analyzed: results.length,
+      results: results
+    };
+
+    return res.status(200).json({ success: true, data: response });
 
   } catch (err) {
     console.error("analyzeWebsite error:", err);
     return res.status(500).json({ 
       success: false, 
-      message: "Internal Server Error" 
+      message: "Internal Server Error",
+      error: err.message
     });
   }
 };

@@ -37,6 +37,22 @@
         .links a:hover {
             background-color: #dee2e6;
         }
+        .button-section {
+            margin-top: 30px;
+        }
+        button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -61,6 +77,15 @@
             <a href="/about.html">About Us</a>
             <a href="/contact.html">Contact</a>
             <a href="/services.html">Services</a>
+        </div>
+        
+        <div class="button-section">
+            <h2>Buttons with Links</h2>
+            <button onclick="window.location='https://www.amazon.com'">Go to Amazon</button>
+            <button onclick="location.href='https://www.ebay.com'">Visit eBay</button>
+            <button data-href="https://www.twitter.com">Twitter Button</button>
+            <button data-url="https://www.facebook.com">Facebook Button</button>
+            <button data-link="https://www.linkedin.com">LinkedIn Button</button>
         </div>
     </div>
 </body>

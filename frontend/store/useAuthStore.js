@@ -33,12 +33,14 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.post("/auth/signup", data);
       set({ authUser: res.data });
       console.log("Account created successfully");
+      return { success: true };
     } catch (error) {
       const err = error.response?.data?.message; // <-- safer access
       console.log(err);
       if (String(err) === "Email already exists") {
         set({ emailAlreadyExists: true });
       }
+      return { success: false, error: err || "Signup failed" };
     } finally {
       set({ isSigningUp: false });
     }
@@ -50,8 +52,10 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data });
       console.log("Logged in successfully");
+      return { success: true };
     } catch (error) {
       console.log(error.response.data.message);
+      return { success: false, error: error.response?.data?.message || "Login failed" };
     } finally {
       set({ isLoggingIn: false });
     }

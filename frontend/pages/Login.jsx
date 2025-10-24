@@ -38,7 +38,7 @@ const Login = () => {
         
         return true
     }
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
         const success = validateForm();
@@ -46,12 +46,15 @@ const Login = () => {
         if (success===true) {
             setEmailRequiredError(false)
             setPasswordRequiredError(false)
-            login(formData)
-            navigate('/dashboard')
-        }
-
-        if (success===true && !authUser) {
-            setWrongCredentialsError(true)
+            setWrongCredentialsError(false)
+            
+            const result = await login(formData)
+            
+            if (result.success) {
+                navigate('/dashboard')
+            } else {
+                setWrongCredentialsError(true)
+            }
         }
     }
 

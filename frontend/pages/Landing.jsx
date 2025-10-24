@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
 import Header from '../components/Header';
 import { FaGithub, FaX, FaYoutube, FaArrowRight } from "react-icons/fa6";
 import Stats from '../components/Stats';
@@ -12,6 +13,7 @@ import Footer from '../components/Footer';
 const Landing = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { authUser } = useAuthStore();
   const [hoveredSocial, setHoveredSocial] = useState(null);
   const [hoveredApply, setHoveredApply] = useState(false);
 
@@ -36,6 +38,16 @@ const Landing = () => {
   const handleSocialClick = (social) => {
     // In a real app, this would redirect to the social media pages
     console.log(`Clicked on ${social}`);
+  };
+
+  const handleApplyNow = () => {
+    // If user is authenticated (has token), go to dashboard
+    // Otherwise, go to signup
+    if (authUser) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
+    }
   };
 
   return (
@@ -78,8 +90,8 @@ const Landing = () => {
             <div 
               className={`rounded-full size-14 border-2 ${
                 hoveredApply ? 'border-red-300' : 'border-red-500'
-              } bg-red-950 transition-all duration-300 flex items-center justify-center`}
-              onClick={() => navigate('/signup')}
+              } bg-red-950 transition-all duration-300 flex items-center justify-center cursor-pointer`}
+              onClick={handleApplyNow}
             >
               <FaArrowRight className={`size-10 scale-50 w-full h-full text-white transition-all duration-300 ${
                 hoveredApply ? 'scale-75' : ''

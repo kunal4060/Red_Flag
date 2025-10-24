@@ -25,7 +25,7 @@ const Signup = () => {
   const [emailAlreadyTaken, setEmailAlreadyTaken] = useState(false);
 
   const [showPlans, setShowPlans] = useState(false);
-  const [plansReady, setPlansReady] = useState(false);
+  const [plansReady, setPlansReady] = useState(true);
 
   const [showFinalize, setShowFinalize] = useState(false);
   const [finalizeReady, setFinalizeReady] = useState(false);
@@ -75,7 +75,7 @@ const Signup = () => {
     
     return true
   }
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
       e.preventDefault()
 
       const success = validateForm();
@@ -85,12 +85,15 @@ const Signup = () => {
         setLastNameRequiredError(false)
         setEmailRequiredError(false)
         setPasswordRequiredError(false)
-        signup(formData)
-        setShowPlans(true)
-      }
-
-      if (success===true && emailAlreadyExists) {
+        setEmailAlreadyTaken(false)
+        
+        const result = await signup(formData)
+        
+        if (result.success) {
+          setShowPlans(true)
+        } else if (emailAlreadyExists) {
           setEmailAlreadyTaken(true)
+        }
       }
   }
 
