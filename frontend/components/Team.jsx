@@ -6,27 +6,27 @@ const Team = () => {
   const teamMembers = [
     { 
       name: "Amritesh", 
-      role: "Team Leader",
+      role: "CEO",
       description: "Leads the development team and oversees project coordination and technical direction.",
       linkedin: "https://www.linkedin.com/in/amritesh-kumar-70a111384/"
     },
     { 
-      name: "Aniket", 
-      role: "Backend Developer",
+      name: "Anikait", 
+      role: "CTO",
       description: "Handles server-side logic, databases, and API development.",
-      linkedin: "https://www.linkedin.com/in/aniket"
+      linkedin: "https://github.com/AnikaitSinha/"
     },
     { 
       name: "Kunal", 
-      role: "UI/UX Designer",
+      role: "CFO",
       description: "Designs the user experience and visual elements of the application.",
       linkedin: "https://www.linkedin.com/in/kunal-ugale-08624a363/"
     },
     { 
-      name: "Nessra", 
-      role: "Representative",
+      name: "Nesara", 
+      role: "CMO",
       description: "Represents the team in external communications and stakeholder meetings.",
-      linkedin: "https://www.linkedin.com/in/nessra"
+      linkedin: "http://www.linkedin.com/in/nesara-harish-3b5141293"
     }
   ];
 
@@ -49,8 +49,6 @@ const Team = () => {
             className={`flex flex-col items-center rounded-3xl w-72 p-8 border transition-all duration-300 transform hover:scale-105 cursor-pointer ${
               member.role === "Team Leader" 
                 ? "bg-gradient-to-br from-red-900 to-red-950 border-red-400" 
-                : member.role === "Representative"
-                ? "bg-gradient-to-br from-purple-800 to-purple-900 border-purple-300" 
                 : "bg-gradient-to-br from-gray-800 to-black border-red-700 hover:border-red-500"
             }`}
             onMouseEnter={() => setHoveredMember(index)}
