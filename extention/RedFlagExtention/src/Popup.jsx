@@ -491,14 +491,6 @@ function Popup() {
             AI Analysis (Copied Link)
           </button>
           
-          {/* <button 
-            onClick={handleCheck2}
-            disabled={isLoading}
-            className="w-full bg-white hover:bg-neutral-200 disabled:bg-neutral-600 text-black font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            <FaMagnifyingGlass size={16} />
-            Deep Analysis (Copied Link)
-          </button> */}
           
           <button 
             onClick={handleInsightAnalysis}
