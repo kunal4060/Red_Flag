@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.route.js";
 import surveyRoutes from "./routes/survey.route.js";
 import aiRoutes from "./routes/ai.route.js";
 import websiteRoutes from "./routes/website.route.js";
+import kaggleRoutes from "./routes/kaggle.route.js";
 
 import { connectDB } from "./lib/db.js";
 import aiService from "./services/ai.service.js";
@@ -28,6 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/survey", surveyRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/website", websiteRoutes);
+app.use("/api/kaggle", kaggleRoutes);
 
 
 server.listen(PORT, async () => {

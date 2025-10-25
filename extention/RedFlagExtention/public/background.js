@@ -140,7 +140,7 @@ async function analyzeWithAI(link) {
   return data;
 }
 
-// ---------------------- Website Analysis ----------------------
+// ---------------------- Website Analysis (AI-based for copied link) ----------------------
 async function analyzeWebsite(url) {
   try {
     const token = await getAuthToken();
@@ -171,6 +171,65 @@ async function analyzeWebsite(url) {
     return data;
   } catch (err) {
     console.error("❌ Website analysis error:", err);
+    return { error: err.message };
+  }
+}
+
+// ---------------------- Website Analysis with Kaggle RF (for interceptor) ----------------------
+async function analyzeWebsiteWithKaggle(url) {
+  try {
+    // Fetch links from the website using our backend
+    const fetchResp = await fetch(`${BACKEND_URL}/api/website/fetch-links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url }),
+    });
+
+    if (!fetchResp.ok) {
+      throw new Error(`Failed to fetch links: ${fetchResp.status} ${fetchResp.statusText}`);
+    }
+
+    const linksData = await fetchResp.json();
+    console.log('🛡️ RedFlag: Fetched links:', linksData);
+
+    if (!linksData.links || linksData.links.length === 0) {
+      return {
+        input_url: url,
+        total_links: 0,
+        links_analyzed: 0,
+        results: []
+      };
+    }
+
+    // Analyze ALL links with Kaggle Random Forest model via backend (no limit!)
+    console.log(`🛡️ RedFlag: Analyzing ALL ${linksData.links.length} links with RF...`);
+
+    // Send all links to backend for batch analysis
+    const analysisResp = await fetch(`${BACKEND_URL}/api/kaggle/analyze-batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls: linksData.links }),
+    });
+
+    if (!analysisResp.ok) {
+      throw new Error(`Failed to analyze links: ${analysisResp.status} ${analysisResp.statusText}`);
+    }
+
+    const analysisData = await analysisResp.json();
+    console.log('🛡️ RedFlag: Analysis results:', analysisData);
+
+    if (analysisData.success && analysisData.results) {
+      return {
+        input_url: url,
+        total_links: linksData.count,
+        links_analyzed: analysisData.results.length,
+        results: analysisData.results
+      };
+    } else {
+      throw new Error(analysisData.error || 'Analysis failed');
+    }
+  } catch (err) {
+    console.error("❌ Website Kaggle analysis error:", err);
     return { error: err.message };
   }
 }
@@ -332,7 +391,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 // ---------------------- Perform analysis on a tab ----------------------
 async function performTabAnalysis(tabId, targetUrl) {
   try {
-    console.log('🛡️ RedFlag Background: Starting analysis for tab', tabId, 'URL:', targetUrl);
+    console.log('🛡️ RedFlag Background: Starting Kaggle RF analysis for tab', tabId, 'URL:', targetUrl);
     console.log('🛡️ RedFlag Background: URL type:', typeof targetUrl, 'URL value:', JSON.stringify(targetUrl));
     
     // Validate targetUrl before proceeding
@@ -346,9 +405,9 @@ async function performTabAnalysis(tabId, targetUrl) {
     // Wait for the data URL page to load
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Analyze the URL
-    const analysisResult = await analyzeWebsite(targetUrl);
-    console.log('🛡️ RedFlag Background: Analysis complete. Result:', analysisResult);
+    // Analyze the URL with Kaggle Random Forest
+    const analysisResult = await analyzeWebsiteWithKaggle(targetUrl);
+    console.log('🛡️ RedFlag Background: Kaggle RF analysis complete. Result:', analysisResult);
     
     // Show results by navigating to a new data URL with the results
     const resultsPage = createResultsPage(targetUrl, analysisResult);
@@ -479,7 +538,7 @@ function createResultsPage(destinationUrl, result) {
       </div>
       
       <p style="color: #6b7280; font-size: 12px; text-align: center; margin-top: 24px;">
-        Powered by RedFlag AI Security
+        Powered by RedFlag Security
       </p>
     </div>
   </div>
@@ -667,7 +726,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "analyzeWebsite") {
-    // Website analysis for copied link
+    // Website analysis for copied link (uses AI model)
     (async () => {
       try {
         // Check if user is authenticated
@@ -716,6 +775,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({
             success: true,
             websiteData: actualData
+          });
+        }
+      } catch (err) {
+        sendResponse({ success: false, error: String(err) });
+      }
+    })();
+    return true;
+  }
+
+  if (message.action === "analyzeWebsiteForInterceptor") {
+    // Website analysis for link interceptor (uses Kaggle RF - NO token required, NO auth needed)
+    (async () => {
+      try {
+        // Use provided URL from message
+        let url = message.url;
+        if (!url) {
+          sendResponse({ success: false, error: "No URL provided" });
+          return;
+        }
+        
+        const websiteData = await analyzeWebsiteWithKaggle(url);
+        console.log('🛡️ RedFlag Background: analyzeWebsiteWithKaggle returned:', websiteData);
+        
+        if (websiteData.error) {
+          sendResponse({ success: false, error: websiteData.error });
+        } else {
+          sendResponse({
+            success: true,
+            websiteData: websiteData
           });
         }
       } catch (err) {

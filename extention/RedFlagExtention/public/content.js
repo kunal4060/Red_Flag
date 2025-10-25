@@ -57,10 +57,10 @@ function showLoading(url) {
         🔍 Analyzing Destination Website
       </h2>
       <p style="color: #9ca3af; font-size: 14px; margin-bottom: 8px;">
-        Running ML analysis...
+        Running RedFlag ML analysis...
       </p>
       <p style="color: #6b7280; font-size: 12px; margin-bottom: 16px;">
-        Fetching and analyzing links with ML model
+        Analyzing all links with ML model
       </p>
       <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; margin-top: 16px; word-break: break-all;">
         <p style="color: #6b7280; font-size: 12px; margin-bottom: 4px;">Destination URL:</p>
