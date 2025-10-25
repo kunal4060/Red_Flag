@@ -49,6 +49,13 @@ const Header = () => {
     }
   };
 
+  const handleDownload = () => {
+    // Open the extension download link in a new tab
+    // Replace this URL with your actual Chrome Web Store or extension download link
+    const downloadUrl = 'https://chrome.google.com/webstore/detail/your-extension-id'; // Update this!
+    window.open(downloadUrl, '_blank');
+  };
+
   return (
     <div className='w-full flex flex-row justify-between text-4xl py-8 px-16 text-white relative'>
         <div 
@@ -93,6 +100,7 @@ const Header = () => {
               className={`hover:text-yellow-200 cursor-pointer transition-all duration-300 ${
                 hoveredItem === 'download' ? 'text-yellow-200 scale-110' : ''
               }`}
+              onClick={handleDownload}
               onMouseEnter={() => setHoveredItem('download')}
               onMouseLeave={() => setHoveredItem(null)}
             >
